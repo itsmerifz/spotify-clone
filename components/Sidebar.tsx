@@ -66,6 +66,9 @@ const Sidebar = () => {
             <p key={item.id} onClick={() => setPlaylistId(item.id)} className='cursor-pointer hover:text-white'>{item.name}</p>
           ))
         }
+        <div className='pt-[75px]'>
+          &nbsp;
+        </div>
       </div>
     </div>
   );
