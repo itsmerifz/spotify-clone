@@ -5,8 +5,8 @@ import useSongInfo from 'hooks/useSongInfo';
 import { useSession } from 'next-auth/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRecoilState } from 'recoil';
-import { HeartIcon, VolumeUpIcon as VolOutline } from '@heroicons/react/outline';
-import { RewindIcon, FastForwardIcon, PauseIcon, PlayIcon, SwitchHorizontalIcon, ReplyIcon, VolumeUpIcon as VolSolid, RefreshIcon } from '@heroicons/react/solid';
+import { VolumeUpIcon as VolOutline } from '@heroicons/react/outline';
+import { RewindIcon, FastForwardIcon, PauseIcon, PlayIcon, SwitchHorizontalIcon, VolumeUpIcon as VolSolid, RefreshIcon } from '@heroicons/react/solid';
 import { debounce } from 'lodash';
 import Slider from '@mui/material/Slider';
 
@@ -26,7 +26,6 @@ const Player = () => {
 
         spotifyApi.getMyCurrentPlaybackState().then(data => {
           setIsPlaying(data.body?.is_playing);
-          console.log('Sedang memutar :', data.body?.item?.name);
         });
       });
     }
@@ -42,7 +41,7 @@ const Player = () => {
         setIsPlaying(true);
       }
     }
-    )
+    ).catch(err => {});
   }
 
   useEffect(() => {
@@ -86,6 +85,22 @@ const Player = () => {
     }
   }, [isRepeatState])
 
+  const handlePrev = () => {
+    spotifyApi.skipToPrevious();
+  }
+
+  const handleNext = () => {
+    spotifyApi.skipToNext();
+  }
+
+  useEffect(() => {
+    setInterval(() => {
+      if (spotifyApi.getAccessToken() && !currentTrackId) {
+        getSongInfo();
+      }
+    },500);
+  }, [currentTrackIdState, spotifyApi])
+  
   return (
     <div className='h-24 bg-gradient-to-b from-black to-gray-900 text-white grid grid-cols-3 text-xs md:text-base px-2 md:px-8'>
       {/* Bagian Kiri */}
@@ -100,11 +115,7 @@ const Player = () => {
       {/* Bagian Tengah */}
       <div className='flex items-center justify-evenly'>
         <SwitchHorizontalIcon className='button' />
-        <RewindIcon className='button' onClick={() => {
-          spotifyApi.skipToPrevious();
-          getSongInfo();
-        }
-        }
+        <RewindIcon className='button' onClick={handlePrev}
         />
         {
           isPlaying ? (
@@ -113,11 +124,7 @@ const Player = () => {
             <PlayIcon className='button w-10 h-10' onClick={handlePlayPause} />
           )
         }
-        <FastForwardIcon className='button' onClick={() => {
-          spotifyApi.skipToNext()
-          getSongInfo();
-        }
-        }
+        <FastForwardIcon className='button' onClick={handleNext}
         />
         <div className='flex flex-col justify-center items-center'>
           <RefreshIcon className='button' onClick={handleRepeat} />
