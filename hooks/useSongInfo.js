@@ -19,6 +19,7 @@ const useSongInfo = () => {
           res => res.json()
         );
         setSongInfo(track);
+        console.log(track);
       }
     }
     getSongInfo();
