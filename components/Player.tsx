@@ -9,6 +9,7 @@ import { VolumeUpIcon as VolOutline } from '@heroicons/react/outline';
 import { RewindIcon, FastForwardIcon, PauseIcon, PlayIcon, SwitchHorizontalIcon, VolumeUpIcon as VolSolid, RefreshIcon } from '@heroicons/react/solid';
 import { debounce } from 'lodash';
 import Slider from '@mui/material/Slider';
+import { millisToMinutesAndSecond } from '../lib/time';
 
 const Player = () => {
   const spotifyApi = useSpotify();
@@ -16,14 +17,21 @@ const Player = () => {
   const [currentTrackId, setCurrentTrackId] = useRecoilState(currentTrackIdState);
   const [isPlaying, setIsPlaying] = useRecoilState(isPlayingState);
   const [isRepeat, setIsRepeat] = useRecoilState(isRepeatState);
-  const [volume, setVolume] = useState(50);
+  const [volume, setVolume] = useState(null);
+  const [progressSong, setProgressSong] = useState(0)
+  const [durationSong, setDurationSong] = useState(0)
+  const [progressSongMs, setProgressSongMs] = useState(0)
+  const [durationSongMs, setDurationSongMs] = useState(0)
   const songInfo = useSongInfo();
 
   const getSongInfo = () => {
     if (!songInfo) {
       spotifyApi.getMyCurrentPlayingTrack().then(data => {
         setCurrentTrackId(data.body?.item?.id);
-
+        setProgressSong(millisToMinutesAndSecond(data.body.progress_ms));
+        setDurationSong(millisToMinutesAndSecond(data.body.item.duration_ms));
+        setProgressSongMs(data.body.progress_ms);
+        setDurationSongMs(data.body.item.duration_ms);
         spotifyApi.getMyCurrentPlaybackState().then(data => {
           setIsPlaying(data.body?.is_playing);
         });
@@ -41,14 +49,16 @@ const Player = () => {
         setIsPlaying(true);
       }
     }
-    ).catch(err => {});
+    ).catch(err => { alert('Perangkat Spotify tidak terdeteksi atau Akun anda bukan akun premium, Silahkan refresh.') });
   }
 
   useEffect(() => {
     if (spotifyApi.getAccessToken() && !currentTrackId) {
       // ambil data lagu dari spotify
       getSongInfo();
-      setVolume(50);
+      spotifyApi.getMyCurrentPlaybackState().then(data => {
+        setVolume(data.body.device.volume_percent);
+      });
     }
 
   }, [currentTrackIdState, spotifyApi, session])
@@ -65,23 +75,29 @@ const Player = () => {
     }, 100), []
   )
 
+  const handleSeek = (e) => {
+    setProgressSongMs(e);
+    spotifyApi.seek(e).then(data =>{
+    }).catch(err => { });
+  }
+
   const handleRepeat = () => {
     spotifyApi.getMyCurrentPlaybackState().then(data => {
-      if (data.body.repeat_state === 'off' ) {
+      if (data.body.repeat_state === 'off') {
         spotifyApi.setRepeat('context');
         setIsRepeat('context');
       } else {
         spotifyApi.setRepeat('off');
         setIsRepeat('off');
       }
-    }).catch(err => { });
+    }).catch(err => { alert('Perangkat Spotify tidak terdeteksi atau Akun anda bukan akun premium, Silahkan refresh.') });
   }
 
   useEffect(() => {
-    if(spotifyApi.getAccessToken() && !currentTrackId){
+    if (spotifyApi.getAccessToken() && !currentTrackId) {
       spotifyApi.getMyCurrentPlaybackState().then(data => {
         setIsRepeat(data.body.repeat_state);
-      }).catch(err => { });
+      }).catch(err => { alert('Perangkat Spotify tidak terdeteksi atau Akun anda bukan akun premium, Silahkan refresh.') });
     }
   }, [isRepeatState])
 
@@ -98,9 +114,9 @@ const Player = () => {
       if (spotifyApi.getAccessToken() && !currentTrackId) {
         getSongInfo();
       }
-    },500);
+    }, 500);
   }, [currentTrackIdState, spotifyApi])
-  
+
   return (
     <div className='h-24 bg-gradient-to-b from-black to-gray-900 text-white grid grid-cols-3 text-xs md:text-base px-2 md:px-8'>
       {/* Bagian Kiri */}
@@ -113,26 +129,55 @@ const Player = () => {
       </div>
 
       {/* Bagian Tengah */}
-      <div className='flex items-center justify-evenly'>
-        <SwitchHorizontalIcon className='button' />
-        <RewindIcon className='button' onClick={handlePrev}
-        />
-        {
-          isPlaying ? (
-            <PauseIcon className='button w-10 h-10' onClick={handlePlayPause} />
-          ) : (
-            <PlayIcon className='button w-10 h-10' onClick={handlePlayPause} />
-          )
-        }
-        <FastForwardIcon className='button' onClick={handleNext}
-        />
-        <div className='flex flex-col justify-center items-center'>
-          <RefreshIcon className='button' onClick={handleRepeat} />
+      <div className=''>
+        <div className='flex items-center justify-evenly mt-5'>
+          <SwitchHorizontalIcon className='button' />
+          <RewindIcon className='button' onClick={handlePrev}
+          />
           {
-            isRepeat === 'context' ? (
-              <span className='items-baseline absolute bottom-5'>&#8226;</span>
-            ) : null
+            isPlaying ? (
+              <PauseIcon className='button w-10 h-10' onClick={handlePlayPause} />
+            ) : (
+              <PlayIcon className='button w-10 h-10' onClick={handlePlayPause} />
+            )
           }
+          <FastForwardIcon className='button' onClick={handleNext}
+          />
+          <div className='flex flex-col justify-center items-center'>
+            <RefreshIcon className='button' onClick={handleRepeat} />
+            {
+              isRepeat === 'context' ? (
+                <span className='items-baseline absolute bottom-6'>&#8226;</span>
+              ) : null
+            }
+          </div>
+        </div>
+        <div className='flex space-x-4 justify-evenly text-white items-center'>
+          <p className='text-gray-500 text-xs md:text-sm'>{progressSong}</p>
+          <Slider
+            value={progressSongMs}
+            min={0}
+            max={durationSongMs}
+            valueLabelDisplay='off'
+            onChange={e => {handleSeek(Number(e.target.value))}}
+            sx={{
+              color:'#fff',
+              '& .MuiSlider-track': {
+                color: '#18d860'
+              },
+              '& .MuiSlider-thumb': {
+                opacity: '0',
+              },
+              '& .MuiSlider-thumb:hover': {
+                opacity: '1',
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                backgroundColor: '#fff',
+              },
+            }}
+          />
+          <p className='text-gray-500 text-xs md:text-sm'>{durationSong}</p>
         </div>
       </div>
 
@@ -141,7 +186,7 @@ const Player = () => {
         <VolOutline className='button' onClick={() => volume > 0 && setVolume(volume - 10)} />
         <div className='w-16 md:w-28 items-center justify-center'>
           <Slider valueLabelDisplay='auto' sx={{
-            color: '#fff', 
+            color: '#fff',
             marginTop: '5px',
             '& .MuiSlider-thumb': {
               opacity: '0',
