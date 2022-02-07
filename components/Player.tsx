@@ -132,22 +132,25 @@ const Player = () => {
       {/* Bagian Kanan */}
       <div className='flex items-center space-x-3 md:space-x-4 justify-end p-5'>
         <VolOutline className='button' onClick={() => volume > 0 && setVolume(volume - 10)} />
-        <Slider valueLabelDisplay='auto' sx={{
-          color: '#fff', 
-          '& .MuiSlider-thumb': {
-            opacity: '0',
-          },
-          '& .MuiSlider-thumb:hover': {
-            opacity: '1',
-            width: '8px',
-            height: '8px',
-            borderRadius: '50%',
-            backgroundColor: '#fff',
-          },
-          '& .MuiSlider-track': {
-            color: '#18d860'
-          }
-        }} className='w-14 md:w-28' value={volume} min={0} max={100} onChange={e => setVolume(Number(e.target.value))} />
+        <div className='w-16 md:w-28 items-center justify-center'>
+          <Slider valueLabelDisplay='auto' sx={{
+            color: '#fff', 
+            marginTop: '5px',
+            '& .MuiSlider-thumb': {
+              opacity: '0',
+            },
+            '& .MuiSlider-thumb:hover': {
+              opacity: '1',
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: '#fff',
+            },
+            '& .MuiSlider-track': {
+              color: '#18d860'
+            }
+          }} value={volume} min={0} max={100} onChange={e => setVolume(Number(e.target.value))} />
+        </div>
         <VolSolid className='button' onClick={() => volume < 100 && setVolume(volume + 10)} />
       </div>
     </div>
